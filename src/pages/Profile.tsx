@@ -3,6 +3,8 @@ import { motion } from 'framer-motion';
 import { useForm } from 'react-hook-form';
 import { User, Mail, MapPin, Save } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../main';
+
 
 interface ProfileFormData {
   name: string;
@@ -12,7 +14,7 @@ interface ProfileFormData {
 }
 
 export default function Profile() {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const { register, handleSubmit, formState: { isSubmitting } } = useForm<ProfileFormData>({
     defaultValues: {
@@ -25,13 +27,36 @@ export default function Profile() {
 
   const onSubmit = async (data: ProfileFormData) => {
     try {
-      // TODO: Implement profile update
-      console.log('Profile data:', data);
+      if (!user) throw new Error("User not found");
+  
+      // Update email in authentication table (if changed)
+      if (data.email !== user.email) {
+        const { error: authError } = await supabase.auth.updateUser({ email: data.email });
+        if (authError) throw new Error(authError.message);
+      }
+  
+      // Update other user details in the `users` table
+      const { error: dbError } = await supabase
+        .from("users")
+        .update({
+          name: data.name,
+          bio: data.bio,
+          location: data.location,
+        })
+        .eq("id", user.id);
+  
+      if (dbError) throw new Error(dbError.message);
+  
+      // Update local user state
+      updateUser(data);
+  
       setIsEditing(false);
+      console.log("Profile updated successfully!");
     } catch (error) {
-      console.error('Failed to update profile:', error);
+      console.error("Failed to update profile:", error);
     }
   };
+  
 
   return (
     <div className="max-w-4xl mx-auto px-4">

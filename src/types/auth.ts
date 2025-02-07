@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { User as SupabaseUser } from '@supabase/auth-js';
 
 export const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -20,11 +21,12 @@ export const registerSchema = z.object({
   path: ['confirmPassword'],
 });
 
-export interface User {
+export interface User extends SupabaseUser {
   id: string;
-  name: string;
-  email: string;
+  name?: string;
   bio?: string;
+  profile_image?: string;
+  email: string;
   location?: string;
 }
 
